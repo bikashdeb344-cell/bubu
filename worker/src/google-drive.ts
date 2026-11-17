@@ -161,7 +161,13 @@ export async function getAccessToken(env: Env): Promise<string> {
     return cachedAccessToken;
   }
 
-  // 1. Check Service Account credentials
+  // 1. Check OAuth Refresh Token credentials first (avoids personal Drive 0 GB service account quota)
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = env;
+  if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_REFRESH_TOKEN) {
+    return await getOAuthAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
+  }
+
+  // 2. Check Service Account credentials (for Google Workspace Shared Drives)
   let saEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let saKey = env.GOOGLE_PRIVATE_KEY;
 
@@ -177,12 +183,6 @@ export async function getAccessToken(env: Env): Promise<string> {
 
   if (saEmail && saKey) {
     return await getServiceAccountAccessToken(saEmail, saKey);
-  }
-
-  // 2. Check OAuth Refresh Token credentials
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = env;
-  if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_REFRESH_TOKEN) {
-    return await getOAuthAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
   }
 
   throw new Error('Google Drive credentials (Service Account or OAuth) are not configured.');
