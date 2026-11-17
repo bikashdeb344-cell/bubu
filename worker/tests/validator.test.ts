@@ -53,10 +53,10 @@ describe('Validator Unit Tests', () => {
   });
 
   it('validates MMU ID strictly', () => {
-    expect(isValidMMU('MMU-001')).toBe(true);
-    expect(isValidMMU('MMU-005')).toBe(true);
-    expect(isValidMMU('MMU-009')).toBe(true);
-    expect(isValidMMU('MMU-010')).toBe(false);
+    expect(isValidMMU('MMU-003')).toBe(true);
+    expect(isValidMMU('MMU-106')).toBe(true);
+    expect(isValidMMU('MMU-101')).toBe(true);
+    expect(isValidMMU('MMU-999')).toBe(false);
     expect(isValidMMU('MMU-000')).toBe(false);
     expect(isValidMMU('')).toBe(false);
     expect(isValidMMU(null)).toBe(false);

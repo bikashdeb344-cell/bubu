@@ -205,13 +205,13 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
   });
 
   // Section 12 Upload Tests:
-  it('Test 1: Upload MMU-001 / AM / 1 JPG image', async () => {
+  it('Test 1: Upload MMU-003 / AM / 1 JPG image', async () => {
     // Pre-populate folders
-    createdDriveFolders.set('root-storage-id:MMU-001', 'mmu1-id');
-    createdDriveFolders.set('mmu1-id:AM', 'folder-id-AM-mock');
+    createdDriveFolders.set('root-storage-id:MMU-003', 'mmu3-id');
+    createdDriveFolders.set('mmu3-id:AM', 'folder-id-AM-mock');
 
     const form = new FormData();
-    form.append('mmu', 'MMU-001');
+    form.append('mmu', 'MMU-003');
     form.append('session', 'AM');
     const file = new File([JPEG_HEADER], 'test.jpg', { type: 'image/jpeg' });
     form.append('photos', file);
@@ -234,21 +234,21 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
       results: Array<{ filename: string; success: boolean }>;
     };
 
-    expect(data.mmu).toBe('MMU-001');
+    expect(data.mmu).toBe('MMU-003');
     expect(data.session).toBe('AM');
-    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-001/AM/');
+    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-003/AM/');
     expect(data.total).toBe(1);
     expect(data.successful).toBe(1);
     expect(data.failed).toBe(0);
     expect(data.results[0].success).toBe(true);
   });
 
-  it('Test 2: Upload MMU-002 / PM / 5 JPG images', async () => {
-    createdDriveFolders.set('root-storage-id:MMU-002', 'mmu2-id');
-    createdDriveFolders.set('mmu2-id:PM', 'folder-id-PM-mock');
+  it('Test 2: Upload MMU-106 / PM / 5 JPG images', async () => {
+    createdDriveFolders.set('root-storage-id:MMU-106', 'mmu106-id');
+    createdDriveFolders.set('mmu106-id:PM', 'folder-id-PM-mock');
 
     const form = new FormData();
-    form.append('mmu', 'MMU-002');
+    form.append('mmu', 'MMU-106');
     form.append('session', 'PM');
 
     for (let i = 1; i <= 5; i++) {
@@ -274,12 +274,12 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
     expect(data.failed).toBe(0);
   });
 
-  it('Test 3: Upload MMU-009 / AM / 3 PNG images', async () => {
-    createdDriveFolders.set('root-storage-id:MMU-009', 'mmu9-id');
-    createdDriveFolders.set('mmu9-id:AM', 'folder-id-AM-mock');
+  it('Test 3: Upload MMU-101 / AM / 3 PNG images', async () => {
+    createdDriveFolders.set('root-storage-id:MMU-101', 'mmu101-id');
+    createdDriveFolders.set('mmu101-id:AM', 'folder-id-AM-mock');
 
     const form = new FormData();
-    form.append('mmu', 'MMU-009');
+    form.append('mmu', 'MMU-101');
     form.append('session', 'AM');
 
     for (let i = 1; i <= 3; i++) {
@@ -304,15 +304,15 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
     expect(data.total).toBe(3);
     expect(data.successful).toBe(3);
     expect(data.failed).toBe(0);
-    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-009/AM/');
+    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-101/AM/');
   });
 
-  it('Test 4: Upload MMU-005 / PM / Multiple mixed JPG and PNG images', async () => {
-    createdDriveFolders.set('root-storage-id:MMU-005', 'mmu5-id');
-    createdDriveFolders.set('mmu5-id:PM', 'folder-id-PM-mock');
+  it('Test 4: Upload MMU-091 / PM / Multiple mixed JPG and PNG images', async () => {
+    createdDriveFolders.set('root-storage-id:MMU-091', 'mmu091-id');
+    createdDriveFolders.set('mmu091-id:PM', 'folder-id-PM-mock');
 
     const form = new FormData();
-    form.append('mmu', 'MMU-005');
+    form.append('mmu', 'MMU-091');
     form.append('session', 'PM');
 
     // 2 JPGs and 2 PNGs
@@ -339,7 +339,7 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
     expect(data.total).toBe(4);
     expect(data.successful).toBe(4);
     expect(data.failed).toBe(0);
-    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-005/PM/');
+    expect(data.destination).toBe('MMU-PHOTO-STORAGE/MMU-091/PM/');
   });
 
   it('Test 5: Rejects upload with no MMU selected', async () => {
@@ -392,7 +392,7 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
 
   it('Test 8: Rejects unsupported file (e.g. document.pdf)', async () => {
     const form = new FormData();
-    form.append('mmu', 'MMU-005');
+    form.append('mmu', 'MMU-091');
     form.append('session', 'AM');
     const fakeFile = new File(['%PDF-1.5 fake content'], 'document.pdf', { type: 'application/pdf' });
     form.append('photos', fakeFile);
@@ -415,7 +415,7 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
     };
 
     const form = new FormData();
-    form.append('mmu', 'MMU-006');
+    form.append('mmu', 'MMU-107');
     form.append('session', 'PM');
 
     // Create a 1.2 MB file with valid JPEG header
@@ -441,7 +441,7 @@ describe('Cloudflare Worker API & Google Drive Integration Tests', () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network connection timeout'));
 
     const form = new FormData();
-    form.append('mmu', 'MMU-007');
+    form.append('mmu', 'MMU-108');
     form.append('session', 'AM');
     form.append('photos', new File([JPEG_HEADER], 'test.jpg', { type: 'image/jpeg' }));
 

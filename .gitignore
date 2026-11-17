@@ -25,6 +25,11 @@ lerna-debug.log*
 .env.*
 !.env.example
 
+# Service Account Keys & Scratch
+*-*.json
+credentials*.json
+scratch/
+
 # IDE & OS
 .vscode/
 .idea/

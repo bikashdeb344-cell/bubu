@@ -165,7 +165,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
   // Validate MMU
   if (!isValidMMU(mmu)) {
     return jsonResponse(
-      { error: 'Invalid or missing MMU parameter. Must be one of MMU-001 through MMU-009.' },
+      { error: 'Invalid or missing MMU parameter.' },
       400,
       env,
       request

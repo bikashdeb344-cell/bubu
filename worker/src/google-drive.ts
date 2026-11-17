@@ -12,27 +12,112 @@ import {
 let cachedAccessToken: string | null = null;
 let tokenExpiresAt = 0;
 
+function base64UrlEncode(data: Uint8Array | string): string {
+  const binary = typeof data === 'string' ? data : String.fromCharCode(...data);
+  return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+function pemToBinary(pem: string): Uint8Array {
+  const b64 = pem
+    .replace(/-----BEGIN [A-Z ]+-----/g, '')
+    .replace(/-----END [A-Z ]+-----/g, '')
+    .replace(/\s+/g, '');
+  const raw = atob(b64);
+  const buf = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    buf[i] = raw.charCodeAt(i);
+  }
+  return buf;
+}
+
+/**
+ * Exchanges Google Service Account JWT for a valid Access Token using Web Crypto
+ */
+async function getServiceAccountAccessToken(
+  clientEmail: string,
+  privateKeyPem: string
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const payload = {
+    iss: clientEmail,
+    scope: 'https://www.googleapis.com/auth/drive',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const unsignedToken = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(
+    JSON.stringify(payload)
+  )}`;
+
+  const keyBuffer = pemToBinary(privateKeyPem);
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyBuffer,
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256',
+    },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const jwt = `${unsignedToken}.${base64UrlEncode(new Uint8Array(signature))}`;
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    let errorDetail = response.statusText;
+    try {
+      const parsed = JSON.parse(errorBody);
+      errorDetail = parsed.error_description || parsed.error || errorDetail;
+    } catch {
+      // ignore
+    }
+    throw new Error(`Google Service Account auth failed (${response.status}): ${errorDetail}`);
+  }
+
+  const tokenData = (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+    token_type: string;
+  };
+
+  cachedAccessToken = tokenData.access_token;
+  tokenExpiresAt = Date.now() + tokenData.expires_in * 1000;
+  return cachedAccessToken;
+}
+
 /**
  * Exchanges Google OAuth Refresh Token for a valid Access Token
  */
-export async function getAccessToken(env: Env): Promise<string> {
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = env;
-
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) {
-    throw new Error('Google OAuth credentials are not fully configured in backend secrets.');
-  }
-
-  // Return cached token if valid for at least 60 more seconds
-  const now = Date.now();
-  if (cachedAccessToken && tokenExpiresAt - now > 60_000) {
-    return cachedAccessToken;
-  }
-
+async function getOAuthAccessToken(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string
+): Promise<string> {
   const tokenUrl = 'https://oauth2.googleapis.com/token';
   const params = new URLSearchParams();
-  params.append('client_id', GOOGLE_CLIENT_ID);
-  params.append('client_secret', GOOGLE_CLIENT_SECRET);
-  params.append('refresh_token', GOOGLE_REFRESH_TOKEN);
+  params.append('client_id', clientId);
+  params.append('client_secret', clientSecret);
+  params.append('refresh_token', refreshToken);
   params.append('grant_type', 'refresh_token');
 
   const response = await fetch(tokenUrl, {
@@ -64,6 +149,43 @@ export async function getAccessToken(env: Env): Promise<string> {
   cachedAccessToken = tokenData.access_token;
   tokenExpiresAt = Date.now() + tokenData.expires_in * 1000;
   return cachedAccessToken;
+}
+
+/**
+ * Gets an active Google access token using either Service Account or OAuth 2.0
+ */
+export async function getAccessToken(env: Env): Promise<string> {
+  // Return cached token if valid for at least 60 more seconds
+  const now = Date.now();
+  if (cachedAccessToken && tokenExpiresAt - now > 60_000) {
+    return cachedAccessToken;
+  }
+
+  // 1. Check Service Account credentials
+  let saEmail = env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  let saKey = env.GOOGLE_PRIVATE_KEY;
+
+  if (env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    try {
+      const parsed = JSON.parse(env.GOOGLE_SERVICE_ACCOUNT_KEY);
+      saEmail = parsed.client_email;
+      saKey = parsed.private_key;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (saEmail && saKey) {
+    return await getServiceAccountAccessToken(saEmail, saKey);
+  }
+
+  // 2. Check OAuth Refresh Token credentials
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = env;
+  if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_REFRESH_TOKEN) {
+    return await getOAuthAccessToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN);
+  }
+
+  throw new Error('Google Drive credentials (Service Account or OAuth) are not configured.');
 }
 
 /**
@@ -193,12 +315,13 @@ export async function validateAndRepairDriveStructure(
   env: Env,
   autoRepair: boolean = false
 ): Promise<DriveStatusResponse> {
-  if (
-    !env.GOOGLE_CLIENT_ID ||
-    !env.GOOGLE_CLIENT_SECRET ||
-    !env.GOOGLE_REFRESH_TOKEN ||
-    !env.GOOGLE_DRIVE_ROOT_FOLDER_ID
-  ) {
+  const hasServiceAccount =
+    (!!env.GOOGLE_SERVICE_ACCOUNT_EMAIL && !!env.GOOGLE_PRIVATE_KEY) ||
+    !!env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  const hasOAuth =
+    !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET && !!env.GOOGLE_REFRESH_TOKEN;
+
+  if ((!hasServiceAccount && !hasOAuth) || !env.GOOGLE_DRIVE_ROOT_FOLDER_ID) {
     return {
       status: 'not_configured',
       authenticated: false,

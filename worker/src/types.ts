@@ -1,4 +1,7 @@
 export interface Env {
+  GOOGLE_SERVICE_ACCOUNT_EMAIL?: string;
+  GOOGLE_PRIVATE_KEY?: string;
+  GOOGLE_SERVICE_ACCOUNT_KEY?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REFRESH_TOKEN?: string;
@@ -9,28 +12,28 @@ export interface Env {
 }
 
 export type MMUId =
-  | 'MMU-001'
-  | 'MMU-002'
   | 'MMU-003'
+  | 'MMU-106'
   | 'MMU-004'
-  | 'MMU-005'
-  | 'MMU-006'
-  | 'MMU-007'
-  | 'MMU-008'
-  | 'MMU-009';
+  | 'MMU-110'
+  | 'MMU-091'
+  | 'MMU-107'
+  | 'MMU-108'
+  | 'MMU-100'
+  | 'MMU-101';
 
 export type SessionType = 'AM' | 'PM';
 
 export const VALID_MMUS: readonly MMUId[] = [
-  'MMU-001',
-  'MMU-002',
   'MMU-003',
+  'MMU-106',
   'MMU-004',
-  'MMU-005',
-  'MMU-006',
-  'MMU-007',
-  'MMU-008',
-  'MMU-009',
+  'MMU-110',
+  'MMU-091',
+  'MMU-107',
+  'MMU-108',
+  'MMU-100',
+  'MMU-101',
 ] as const;
 
 export const VALID_SESSIONS: readonly SessionType[] = ['AM', 'PM'] as const;

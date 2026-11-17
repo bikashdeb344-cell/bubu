@@ -1,24 +1,24 @@
 export type MMUId =
-  | 'MMU-001'
-  | 'MMU-002'
   | 'MMU-003'
+  | 'MMU-106'
   | 'MMU-004'
-  | 'MMU-005'
-  | 'MMU-006'
-  | 'MMU-007'
-  | 'MMU-008'
-  | 'MMU-009';
+  | 'MMU-110'
+  | 'MMU-091'
+  | 'MMU-107'
+  | 'MMU-108'
+  | 'MMU-100'
+  | 'MMU-101';
 
 export const MMU_LIST: readonly MMUId[] = [
-  'MMU-001',
-  'MMU-002',
   'MMU-003',
+  'MMU-106',
   'MMU-004',
-  'MMU-005',
-  'MMU-006',
-  'MMU-007',
-  'MMU-008',
-  'MMU-009',
+  'MMU-110',
+  'MMU-091',
+  'MMU-107',
+  'MMU-108',
+  'MMU-100',
+  'MMU-101',
 ] as const;
 
 export type SessionType = 'AM' | 'PM';
