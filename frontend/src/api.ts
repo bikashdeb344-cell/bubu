@@ -1,6 +1,8 @@
 import { DriveStatusResponse, MMUId, SessionType, UploadResponse } from './types';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+const API_BASE = (
+  import.meta.env.VITE_API_BASE_URL || 'https://mmu-photo-portal-worker.bikashdeb344.workers.dev'
+).replace(/\/+$/, '');
 
 export async function fetchHealth(): Promise<{ status: string; service: string }> {
   const res = await fetch(`${API_BASE}/api/health`);

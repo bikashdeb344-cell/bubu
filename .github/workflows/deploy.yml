@@ -47,7 +47,7 @@ jobs:
 
       - name: Build Frontend
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://mmu-photo-portal-worker.bikashdeb344.workers.dev' }}
         run: npm run build:frontend
 
   # ==========================================
@@ -109,7 +109,7 @@ jobs:
 
       - name: Build Frontend for GitHub Pages
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || 'https://mmu-photo-portal-worker.bikashdeb344.workers.dev' }}
         run: npm run build:frontend
 
       - name: Setup GitHub Pages

@@ -14,5 +14,8 @@
     "build:frontend": "npm --prefix frontend run build",
     "build:worker": "npm --prefix worker run typecheck",
     "build": "npm run build:frontend && npm run build:worker"
+  },
+  "devDependencies": {
+    "wrangler": "^4.164.0"
   }
 }
