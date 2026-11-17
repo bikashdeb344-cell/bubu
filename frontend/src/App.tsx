@@ -178,9 +178,15 @@ export const App: React.FC = () => {
       }));
       recordHistory(historyEntries);
 
-      // If all successful, clean up selected files
+      // If all successful, clean up selected files and refresh portal
       if (summary.failed === 0) {
         handleClearAllFiles();
+        // Automatically refresh portal after every successful upload
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location) {
+            window.location.reload();
+          }
+        }, 2500);
       } else {
         // Keep only failed files in selection for easy retry
         const successfulNames = new Set(

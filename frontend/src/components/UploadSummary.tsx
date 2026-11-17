@@ -40,6 +40,11 @@ export const UploadSummary: React.FC<UploadSummaryProps> = ({
             <p className="text-xs text-slate-600 font-medium">
               Total: {summary.successful}/{summary.total} successful
             </p>
+            {isAllSuccess && (
+              <p className="text-[11px] text-emerald-700 font-semibold animate-pulse mt-0.5">
+                Refreshing portal...
+              </p>
+            )}
           </div>
         </div>
 
