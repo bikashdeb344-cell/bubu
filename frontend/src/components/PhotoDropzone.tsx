@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloud, Image as ImageIcon, X, AlertTriangle, Trash2 } from 'lucide-react';
-import { SelectedFile } from '../types';
+import { SelectedFile, SessionType } from '../types';
+import { formatTargetFilename } from '../utils/naming';
 
 interface PhotoDropzoneProps {
   files: SelectedFile[];
@@ -10,6 +11,7 @@ interface PhotoDropzoneProps {
   disabled?: boolean;
   maxFiles?: number;
   maxSizeMB?: number;
+  session?: SessionType | null;
 }
 
 export const PhotoDropzone: React.FC<PhotoDropzoneProps> = ({
@@ -20,6 +22,7 @@ export const PhotoDropzone: React.FC<PhotoDropzoneProps> = ({
   disabled,
   maxFiles = 20,
   maxSizeMB = 15,
+  session,
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -240,7 +243,15 @@ export const PhotoDropzone: React.FC<PhotoDropzoneProps> = ({
                   >
                     {item.name}
                   </p>
-                  <p className="text-[11px] text-slate-500">
+                  {session && (
+                    <p
+                      className="text-[10px] font-mono font-semibold text-blue-600 truncate bg-blue-50 px-1 py-0.5 rounded mt-0.5 border border-blue-100"
+                      title={formatTargetFilename(session, item.name, files.indexOf(item), files.length)}
+                    >
+                      ↳ {formatTargetFilename(session, item.name, files.indexOf(item), files.length)}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     {formatFileSize(item.size)}
                   </p>
                 </div>

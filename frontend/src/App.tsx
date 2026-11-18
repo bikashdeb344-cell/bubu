@@ -241,6 +241,7 @@ export const App: React.FC = () => {
               disabled={isUploading}
               maxFiles={20}
               maxSizeMB={15}
+              session={selectedSession}
             />
 
             {/* Error banner */}

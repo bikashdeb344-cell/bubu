@@ -15,6 +15,7 @@ import {
   isValidSession,
   validateUploadedFile,
 } from './validator';
+import { generateTargetFilename } from './naming';
 
 // Simple in-memory rate limiter for abuse prevention
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -254,14 +255,22 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
   let successful = 0;
   let failed = 0;
 
-  // Upload each file individually and track results
-  for (const item of validatedFiles) {
+  // Upload each file individually with standardized renaming and track results
+  for (let i = 0; i < validatedFiles.length; i++) {
+    const item = validatedFiles[i];
+    const targetFilename = generateTargetFilename(
+      session,
+      item.file.name,
+      i,
+      validatedFiles.length
+    );
+
     try {
-      // 1. Upload to Drive
+      // 1. Upload to Drive with standardized filename: DD-MONTH-YY {IN-PHOTO|OUT-PHOTO}[-N].ext
       const uploaded = await uploadFileToDrive(
         accessToken,
         destinationFolderId,
-        item.file.name,
+        targetFilename,
         item.mimeType,
         item.bytes
       );
@@ -271,7 +280,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
         accessToken,
         uploaded.id,
         destinationFolderId,
-        item.file.name,
+        targetFilename,
         item.mimeType
       );
 
@@ -280,10 +289,10 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
       }
 
       results.push({
-        filename: item.file.name,
+        filename: targetFilename,
         success: true,
         fileId: uploaded.id,
-        drivePath: `${destinationPath}${item.file.name}`,
+        drivePath: `${destinationPath}${targetFilename}`,
         size: item.file.size,
         mimeType: item.mimeType,
       });
@@ -291,7 +300,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Upload failed';
       results.push({
-        filename: item.file.name,
+        filename: targetFilename,
         success: false,
         error: errorMsg,
         size: item.file.size,
