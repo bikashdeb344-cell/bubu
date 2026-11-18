@@ -1,237 +1,131 @@
 # MMU Photo Portal
 
-A production-ready, lightweight, mobile-first web application designed to upload photographs directly into structured Google Drive directories (`MMU-PHOTO-STORAGE/MMU-001..009/{AM,PM}/`).
+A production-ready, lightweight, mobile-first web application and Android app designed to upload photographs directly into structured Google Drive directories (`MMU-PHOTO-STORAGE/<MMU-ID>/{AM,PM}/`) with automatic standardized renaming.
 
-Built with a free-tier serverless architecture using **React + Vite + Tailwind CSS** on the frontend, **Cloudflare Workers** on the backend, and **Google Drive API v3** with secure OAuth 2.0.
-
----
-
-## 1. Architecture Overview
-
-```
-[Mobile / Tablet / Desktop Browser]
-            │
-            │ HTTPS (Multipart Photo Upload / Drive Status)
-            ▼
-[Cloudflare Worker Backend] (Edge Network)
-  ├── 1. Rate Limiting & CORS Enforcement
-  ├── 2. Image Validation (MIME & Magic Bytes: JPG, PNG, WEBP)
-  ├── 3. Directory Auto-Creation & Validation (18/18 Folders)
-  └── 4. OAuth 2.0 Token Refresh & Resumable Upload
-            │
-            │ Google Drive API v3 (Direct API)
-            ▼
-[Google Drive Storage: MMU-PHOTO-STORAGE]
-  ├── MMU-001 / [AM, PM]
-  ├── MMU-002 / [AM, PM]
-  ├── MMU-003 / [AM, PM]
-  ├── MMU-004 / [AM, PM]
-  ├── MMU-005 / [AM, PM]
-  ├── MMU-006 / [AM, PM]
-  ├── MMU-007 / [AM, PM]
-  ├── MMU-008 / [AM, PM]
-  └── MMU-009 / [AM, PM]
-```
+Built with a free-tier serverless architecture using **React + Vite + Tailwind CSS** on the frontend, **Cloudflare Workers** on the backend, **Google Drive API v3** with personal Google account OAuth 2.0 (15 GB quota), and a lightweight native **Android WebView APK**.
 
 ---
 
-## 2. Technology Stack
+## 1. Live Deployment Endpoints
 
-- **Frontend:**
-  - React 18 & TypeScript
-  - Vite for optimized bundling (~54 kB gzip)
-  - Tailwind CSS for mobile-first responsive styling
-  - Lucide React for modern iconography
-  - Vitest & React Testing Library for QA
-- **Backend:**
-  - Cloudflare Workers (TypeScript)
-  - Google Drive API v3 (Resumable Upload Protocol)
-  - Google OAuth 2.0 (Refresh Token authentication)
-  - In-memory rate limiting and magic byte file validation
-- **Deployment & CI/CD:**
-  - GitHub Actions for automated testing and deployment
-  - Static hosting on GitHub Pages / Cloudflare Pages
-  - Cloudflare Worker serverless edge deployment
+| Component | URL / Location | Status |
+|---|---|---|
+| **Production Web App** | [https://bikashdeb344-cell.github.io/bubu/](https://bikashdeb344-cell.github.io/bubu/) | 🟢 **Live & Operational** |
+| **Edge Worker API** | `https://mmu-photo-portal-worker.bikashdeb344.workers.dev` | 🟢 **Live (HTTP 200)** |
+| **Android App (APK)** | [`MMU-Photo-Portal.apk`](./MMU-Photo-Portal.apk) (868 KB) | 🟢 **Ready for Install** |
+| **Google Drive Storage** | [`MMU-PHOTO-STORAGE`](https://drive.google.com/drive/folders/1a5-PEzrzoSR4gPM4rjCtWEZ5cSgs-r-a) | 🟢 **18/18 Verified** |
 
 ---
 
-## 3. Google Drive Directory Structure
+## 2. Standardized Photo Renaming Scheme
 
-The portal manages exactly **9 MMU directories** and **18 subdirectories** under the root folder (`MMU-PHOTO-STORAGE`):
+Every photo uploaded through the web portal or Android app is automatically renamed based on the session and the current Indian Standard Time (IST, UTC+5:30) date before saving to Google Drive:
+
+| Session | Single Photo Upload | Multiple Photos Batch Upload |
+|---|---|---|
+| **AM (Morning Check-in)** | `DD-MONTH-YY IN-PHOTO.ext`<br>*(e.g., `18-NOV-26 IN-PHOTO.jpg`)* | `DD-MONTH-YY IN-PHOTO-1.ext`<br>`DD-MONTH-YY IN-PHOTO-2.ext`<br>*(e.g., `18-NOV-26 IN-PHOTO-1.jpg`)* |
+| **PM (Evening Check-out)** | `DD-MONTH-YY OUT-PHOTO.ext`<br>*(e.g., `18-NOV-26 OUT-PHOTO.jpg`)* | `DD-MONTH-YY OUT-PHOTO-1.ext`<br>`DD-MONTH-YY OUT-PHOTO-2.ext`<br>*(e.g., `18-NOV-26 OUT-PHOTO-1.jpg`)* |
+
+* File extensions (`.jpg`, `.jpeg`, `.png`, `.webp`) are automatically preserved.
+* The web portal provides a real-time target name preview (`↳ 18-NOV-26 IN-PHOTO.jpg`) beneath each photo thumbnail prior to upload.
+
+---
+
+## 3. MMU Fleet Directory Structure
+
+The portal manages the 9 designated Mobile Medical Units with 18 subdirectories under the root folder `MMU-PHOTO-STORAGE`:
 
 ```
 MMU-PHOTO-STORAGE/
-├── MMU-001/
-│   ├── AM/
-│   └── PM/
-├── MMU-002/
-│   ├── AM/
-│   └── PM/
 ├── MMU-003/
+│   ├── AM/
+│   └── PM/
+├── MMU-106/
 │   ├── AM/
 │   └── PM/
 ├── MMU-004/
 │   ├── AM/
 │   └── PM/
-├── MMU-005/
+├── MMU-110/
 │   ├── AM/
 │   └── PM/
-├── MMU-006/
+├── MMU-091/
 │   ├── AM/
 │   └── PM/
-├── MMU-007/
+├── MMU-107/
 │   ├── AM/
 │   └── PM/
-├── MMU-008/
+├── MMU-108/
 │   ├── AM/
 │   └── PM/
-└── MMU-009/
+├── MMU-100/
+│   ├── AM/
+│   └── PM/
+└── MMU-101/
     ├── AM/
     └── PM/
 ```
 
-### Automatic Directory Validation & Self-Healing
+### Self-Healing & Directory Verification
 On startup or when clicking **"Recheck Google Drive"**:
-1. Connects to Google Drive using backend credentials.
-2. Locates the root folder `MMU-PHOTO-STORAGE`.
-3. Verifies all 9 MMU units exist; creates any missing ones.
-4. Verifies all 18 AM/PM folders exist; creates any missing subdirectories under the correct parent.
-5. Uploads are strictly disabled until `18/18 Directories Verified` is confirmed.
+1. Connects to Google Drive using secure backend OAuth credentials.
+2. Scans the root folder `MMU-PHOTO-STORAGE` (`1a5-PEzrzoSR4gPM4rjCtWEZ5cSgs-r-a`).
+3. Confirms all 9 MMU units and 18 session subdirectories exist; automatically repairs any missing folders.
+4. Uploads remain locked until `18/18 Directories Verified` is confirmed.
 
 ---
 
-## 4. Setup & Configuration Guide
+## 4. Key Portal Features
 
-### Step 1: Google Cloud Console Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project (e.g. `MMU-Photo-Storage`).
-3. Enable the **Google Drive API**:
-   - Navigate to **APIs & Services > Library** -> Search for **Google Drive API** -> Click **Enable**.
-4. Configure OAuth Consent Screen:
-   - Select **External** (or Internal for Workspace).
-   - Add scope: `https://www.googleapis.com/auth/drive` or `https://www.googleapis.com/auth/drive.file`.
-   - Add your Google account under **Test Users**.
-5. Create OAuth 2.0 Client ID:
-   - Go to **APIs & Services > Credentials > Create Credentials > OAuth client ID**.
-   - Application type: **Web application**.
-   - Authorized redirect URIs: `https://developers.google.com/oauthplayground`.
-   - Copy the **Client ID** and **Client Secret**.
-6. Generate OAuth Refresh Token:
-   - Open [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
-   - Click the gear icon (top right) -> Check **"Use your own OAuth credentials"**.
-   - Enter your Client ID and Client Secret.
-   - In Step 1, enter scope `https://www.googleapis.com/auth/drive` and click **Authorize APIs**.
-   - Sign in with your storage Google account and grant permissions.
-   - In Step 2, click **Exchange authorization code for tokens**.
-   - Copy the generated `refresh_token`.
-7. Obtain Google Drive Root Folder ID:
-   - In Google Drive, create a folder named `MMU-PHOTO-STORAGE`.
-   - Open the folder. The URL will look like: `https://drive.google.com/drive/folders/1A2B3C4D5E6F7G8H9I0J-XYZ`
-   - Copy the ID string (`1A2B3C4D5E6F7G8H9I0J-XYZ`).
+* **Mobile-First UX**: Responsive card layout, tactile session toggles (AM/PM), multi-file drag-and-drop dropzone, and individual image removal.
+* **Auto-Refresh After Every Upload**: When a submission completes successfully, the portal displays a confirmation banner and automatically reloads after 2.5 seconds, resetting all fields cleanly for the next batch.
+* **Abuse Prevention & Security**: Edge rate-limiting (60 req/min), CORS restrictions, and magic byte validation for JPEG, PNG, and WEBP.
+* **Zero Client Secrets**: Sensitive Google OAuth keys are securely stored in Cloudflare encrypted secrets; zero credentials are exposed in client bundles.
 
 ---
 
-### Step 2: Backend Cloudflare Worker Secrets
+## 5. Android WebView Application
 
-In `worker/`, create `.dev.vars` for local testing (or set them via Wrangler CLI in production):
+An ultra-lightweight, native Android app is provided in [`android/`](./android):
+* **Direct Download**: [`MMU-Photo-Portal.apk`](./MMU-Photo-Portal.apk) (868 KB).
+* **Hardware-Accelerated WebView**: Loads the live portal with full JavaScript and DOM storage support.
+* **Native File Chooser**: Implements `WebChromeClient.onShowFileChooser` allowing field users to pick multiple photos from gallery, file manager, or directly capture from camera.
+* **Gesture-Safe**: Pull-to-refresh is omitted to avoid accidental reloads while selecting photos.
+* **Back Button Navigation**: Uses device back button for in-app history navigation.
 
-```ini
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your-google-client-secret
-GOOGLE_REFRESH_TOKEN=1//your-oauth-refresh-token
-GOOGLE_DRIVE_ROOT_FOLDER_ID=your-root-folder-id
-ALLOWED_ORIGIN=*
-MAX_FILE_SIZE_MB=15
-MAX_FILES_PER_UPLOAD=20
-```
+---
 
-To set production secrets in Cloudflare:
+## 6. Automated Test Suite (36/36 Passed)
+
 ```bash
-npx wrangler secret put GOOGLE_CLIENT_ID
-npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret put GOOGLE_REFRESH_TOKEN
-npx wrangler secret put GOOGLE_DRIVE_ROOT_FOLDER_ID
+# Run backend tests (Vitest)
+npm --prefix worker test
+
+# Run frontend tests (Vitest & RTL)
+npm --prefix frontend test
 ```
 
----
-
-### Step 3: Frontend Configuration
-
-In `frontend/`, create `.env` for local testing:
-
-```ini
-VITE_API_BASE_URL=http://localhost:8787
-```
-
-In production, set `VITE_API_BASE_URL` to your Cloudflare Worker domain (e.g. `https://mmu-photo-portal-worker.<subdomain>.workers.dev`).
+* **28 Backend Tests**: Directory validation, magic byte verification, session tags, IST date parts, single/multi-photo renaming, rate limiting, and error handling.
+* **8 Frontend Tests**: Dropdown options, session selection, previews, target filename display, submission guards, and local history logging.
 
 ---
 
-## 5. API Reference
+## 7. Deployment Instructions
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/health` | Backend health status and timestamp |
-| `GET` | `/api/drive/status` | Scans Google Drive and verifies all 18 directories |
-| `POST` | `/api/drive/initialize` | Automatically heals/creates missing MMU and AM/PM folders |
-| `POST` | `/api/upload` | Validates and uploads multipart photographs to target MMU/session folder |
-
-### POST /api/upload Parameters
-- `mmu`: String (`MMU-001` through `MMU-009`)
-- `session`: String (`AM` or `PM`)
-- `photos`: One or multiple files (`.jpg`, `.jpeg`, `.png`, `.webp`)
-
----
-
-## 6. Local Development & Testing
-
-### Install all dependencies:
+### Frontend (GitHub Pages)
 ```bash
-npm install
+npm --prefix frontend run build
 ```
+Automatically deployed to GitHub Pages via `.github/workflows/deploy.yml` on push to `main`.
 
-### Run tests:
+### Backend (Cloudflare Worker)
 ```bash
-# Run backend worker tests (21 tests)
-npm run test:worker
-
-# Run frontend tests (8 tests)
-npm run test:frontend
-
-# Run all tests
-npm test
+npx wrangler deploy --cwd worker
 ```
 
-### Start local dev servers:
+### Android APK Build
 ```bash
-# Terminal 1: Cloudflare Worker backend (port 8787)
-cd worker && npm run dev
-
-# Terminal 2: React Vite frontend (port 5173)
-cd frontend && npm run dev
+cd android
+./gradlew assembleDebug
 ```
-
----
-
-## 7. Automated CI/CD (GitHub Actions)
-
-The repository includes `.github/workflows/deploy.yml`:
-1. **CI Pipeline**: Runs all frontend and backend unit tests on every pull request and push.
-2. **Deploy Worker**: Deploys the worker to Cloudflare with zero downtime.
-3. **Deploy Frontend**: Automatically builds and deploys static assets to GitHub Pages.
-
-Required GitHub Secrets for deployment:
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `VITE_API_BASE_URL`
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_REFRESH_TOKEN`
-- `GOOGLE_DRIVE_ROOT_FOLDER_ID`
-
----
-
-## 8. License
-
-MIT
+Output APK generated at `android/app/build/outputs/apk/debug/app-debug.apk`.
