@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateTargetFilename, getISTDateParts } from '../src/naming';
+import {
+  extractExifDate,
+  generateTargetFilename,
+  getISTDateParts,
+  parseDateFromFilename,
+  resolvePhotoDate,
+} from '../src/naming';
 
 describe('Naming Utility Tests', () => {
   const fixedDate = new Date('2026-11-18T10:00:00Z'); // In IST (UTC+5:30), this is 2026-11-18 15:30:00
@@ -54,5 +60,58 @@ describe('Naming Utility Tests', () => {
 
     const namePng = generateTargetFilename('AM', 'photo.png', 0, 1, fixedDate);
     expect(namePng).toBe('18-NOV-26 IN-PHOTO.png');
+  });
+
+  describe('Image Date Extraction Tests (User Requirement)', () => {
+    it('extracts date from filename with YYYY-MM-DD pattern (e.g. Screenshot)', () => {
+      const filename = 'Screenshot 2026-11-14 102030.png';
+      const targetName = generateTargetFilename('AM', filename, 0, 1);
+      expect(targetName).toBe('14-NOV-26 IN-PHOTO.png');
+    });
+
+    it('extracts date from camera naming with YYYYMMDD pattern (e.g. IMG_YYYYMMDD_HHMMSS)', () => {
+      const filename = 'IMG_20261025_143000.jpg';
+      const targetName = generateTargetFilename('PM', filename, 0, 1);
+      expect(targetName).toBe('25-OCT-26 OUT-PHOTO.jpg');
+    });
+
+    it('extracts date from WhatsApp naming (e.g. WhatsApp Image YYYY-MM-DD at ...)', () => {
+      const filename = 'WhatsApp Image 2026-11-12 at 09.15.30.jpeg';
+      const targetName = generateTargetFilename('AM', filename, 0, 1);
+      expect(targetName).toBe('12-NOV-26 IN-PHOTO.jpeg');
+    });
+
+    it('extracts date from DD-MM-YYYY filename pattern', () => {
+      const filename = '05-11-2026_photo.jpg';
+      const targetName = generateTargetFilename('PM', filename, 0, 1);
+      expect(targetName).toBe('05-NOV-26 OUT-PHOTO.jpg');
+    });
+
+    it('extracts date from DD-MMM-YYYY filename pattern', () => {
+      const filename = 'photo_10-OCT-2026.png';
+      const targetName = generateTargetFilename('AM', filename, 0, 1);
+      expect(targetName).toBe('10-OCT-26 IN-PHOTO.png');
+    });
+
+    it('extracts date from EXIF metadata bytes when present', () => {
+      // Construct a mock JPEG header containing Exif ASCII date
+      const prefix = 'FFD8FFE1003045786966000049492A0008000000';
+      const dateStr = Buffer.from('2026:09:15 11:20:00').toString('hex');
+      const suffix = 'FFD9';
+      const mockBytes = new Uint8Array(Buffer.from(prefix + dateStr + suffix, 'hex'));
+
+      const extracted = extractExifDate(mockBytes);
+      expect(extracted).not.toBeNull();
+
+      // Passing bytes with generic filename should use EXIF date: 15-SEP-26
+      const targetName = generateTargetFilename('AM', 'generic_photo.jpg', 0, 1, mockBytes);
+      expect(targetName).toBe('15-SEP-26 IN-PHOTO.jpg');
+    });
+
+    it('falls back to current date when image contains no date in EXIF or filename', () => {
+      const filename = 'plain_photo.jpg';
+      const targetName = generateTargetFilename('AM', filename, 0, 1, fixedDate);
+      expect(targetName).toBe('18-NOV-26 IN-PHOTO.jpg');
+    });
   });
 });

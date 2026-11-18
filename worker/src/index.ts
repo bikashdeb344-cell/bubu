@@ -262,7 +262,8 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
       session,
       item.file.name,
       i,
-      validatedFiles.length
+      validatedFiles.length,
+      item.bytes
     );
 
     try {
