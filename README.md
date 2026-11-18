@@ -19,15 +19,19 @@ Built with a free-tier serverless architecture using **React + Vite + Tailwind C
 
 ## 2. Standardized Photo Renaming Scheme
 
-Every photo uploaded through the web portal or Android app is automatically renamed based on the session and the current Indian Standard Time (IST, UTC+5:30) date before saving to Google Drive:
+Every photo uploaded through the web portal or Android app is automatically inspected for dates (EXIF capture timestamp or filename patterns like `IMG-20261117-WA0061.jpg`, `20261025_192724.jpg`, `Screenshot...`) before renaming and saving to Google Drive:
 
 | Session | Single Photo Upload | Multiple Photos Batch Upload |
 |---|---|---|
-| **AM (Morning Check-in)** | `DD-MONTH-YY IN-PHOTO.ext`<br>*(e.g., `18-NOV-26 IN-PHOTO.jpg`)* | `DD-MONTH-YY IN-PHOTO-1.ext`<br>`DD-MONTH-YY IN-PHOTO-2.ext`<br>*(e.g., `18-NOV-26 IN-PHOTO-1.jpg`)* |
-| **PM (Evening Check-out)** | `DD-MONTH-YY OUT-PHOTO.ext`<br>*(e.g., `18-NOV-26 OUT-PHOTO.jpg`)* | `DD-MONTH-YY OUT-PHOTO-1.ext`<br>`DD-MONTH-YY OUT-PHOTO-2.ext`<br>*(e.g., `18-NOV-26 OUT-PHOTO-1.jpg`)* |
+| **AM (Morning Check-in)** | `[DD MON YYYY IN-photo].ext`<br>*(e.g., `[25 OCT 2026 IN-photo].jpg`)* | `[DD MON YYYY IN-photo-1].ext`<br>`[DD MON YYYY IN-photo-2].ext`<br>*(e.g., `[25 OCT 2026 IN-photo-1].jpg`)* |
+| **PM (Evening Check-out)** | `[DD MON YYYY OUT-photo].ext`<br>*(e.g., `[25 OCT 2026 OUT-photo].jpg`)* | `[DD MON YYYY OUT-photo-1].ext`<br>`[DD MON YYYY OUT-photo-2].ext`<br>*(e.g., `[25 OCT 2026 OUT-photo-1].jpg`)* |
 
-* File extensions (`.jpg`, `.jpeg`, `.png`, `.webp`) are automatically preserved.
-* The web portal provides a real-time target name preview (`↳ 18-NOV-26 IN-PHOTO.jpg`) beneath each photo thumbnail prior to upload.
+* **Date Intelligence**:
+  * Scans filename for WhatsApp (`IMG-YYYYMMDD-WA...`), Camera (`YYYYMMDD_HHMMSS`), and screenshot/ISO dates (`YYYY-MM-DD`, `DD-MM-YYYY`).
+  * Scans JPEG/PNG binary headers for EXIF capture timestamps.
+  * Defaults to the current Indian Standard Time (IST, UTC+5:30) date if no date is found.
+* **Format**: Square brackets enclosing the date and session (`[DD MON YYYY IN/OUT-photo]`), preserving the original file extension (`.jpg`, `.jpeg`, `.png`, `.webp`).
+* The web portal provides a real-time target name preview (`↳ [25 OCT 2026 IN-photo].jpg`) beneath each photo thumbnail prior to upload.
 
 ---
 
@@ -95,7 +99,7 @@ An ultra-lightweight, native Android app is provided in [`android/`](./android):
 
 ---
 
-## 6. Automated Test Suite (36/36 Passed)
+## 6. Automated Test Suite (54/54 Passed)
 
 ```bash
 # Run backend tests (Vitest)
@@ -105,8 +109,8 @@ npm --prefix worker test
 npm --prefix frontend test
 ```
 
-* **28 Backend Tests**: Directory validation, magic byte verification, session tags, IST date parts, single/multi-photo renaming, rate limiting, and error handling.
-* **8 Frontend Tests**: Dropdown options, session selection, previews, target filename display, submission guards, and local history logging.
+* **39 Backend Tests**: Directory validation, magic byte verification, session tags, 4-digit IST date parts, WhatsApp/camera/screenshot date parsing, EXIF headers, single/multi-photo renaming, rate limiting, and error handling.
+* **15 Frontend Tests**: Dropdown options, session selection, previews, target filename display `[DD MON YYYY IN/OUT-photo].ext`, client-side date extraction, submission guards, and local history logging.
 
 ---
 
